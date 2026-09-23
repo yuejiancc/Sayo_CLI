@@ -118,11 +118,10 @@ int AnalysisRequest(REQUEST &req, char *const buffer) {
                     }
                     switch (strp[0]) {
                         case 0:
-                            if (req.type == REQ_POST) {
-                                strp += 2;
-                                req.body = strp;
+                            if (req.type == REQ_POST || req.type == REQ_PUT) {
+                                req.body = p + 1;
                             }
-                            break;
+                            return 0;
                         default:
                             break;
                     }

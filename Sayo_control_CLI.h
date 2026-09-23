@@ -12,10 +12,13 @@
 #include <wininet.h>
 #pragma comment(lib, "wininet.lib")
 #pragma comment(lib, "ws2_32.lib")
+typedef unsigned long in_addr_t;
+typedef SOCKET socket_t;
 #else
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+typedef int socket_t;
 #endif // WIN32
 
 
@@ -27,4 +30,4 @@
 
 
 int httpServer();
-int http(int sClient, in_addr_t sClinentAddr);
+int http(socket_t sClient, in_addr_t sClinentAddr);

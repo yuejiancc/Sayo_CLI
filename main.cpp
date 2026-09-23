@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <json/json.h>
 
-#ifdef WIN32
+#if defined(WIN32) && defined(ENABLE_KEY_HOOK)
 #include "HOOK/hook_keyboard.h"
 #endif
 unsigned short a_server_port = 7296;
@@ -151,12 +151,12 @@ int httpServer() {
     cout << "open http://127.0.0.1:" << a_server_port << " to setting..." << endl;
     wchar_t url[64];
     swprintf(url, 64, L"http://127.0.0.1:%d", a_server_port);
-    ShellExecute(0, 0, url, 0, 0, 0);
+    ShellExecuteW(0, 0, url, 0, 0, 0);
     SOCKET sClient;
     while (true) {
         using namespace std;
         sClient = accept(slisten, (SOCKADDR *) &remoteAddr, &nAddrlen);
-        std::thread _01(http, sClient, remoteAddr.sin_addr.S_un.S_addr);
+        std::thread _01(http, sClient, (in_addr_t) remoteAddr.sin_addr.S_un.S_addr);
         _01.detach();
     }
 #ifdef WIN32
@@ -170,9 +170,9 @@ int httpServer() {
 }
 
 
-int http(int sClient, in_addr_t sClinentAddr) {
+int http(socket_t sClient, in_addr_t sClinentAddr) {
     std::random_device rd;
-    if (sClient == -1) {
+    if (sClient == INVALID_SOCKET || (long long)sClient == -1) {
         cout << "accept error !" << endl;
         return 0;
     }
@@ -282,7 +282,7 @@ int http(int sClient, in_addr_t sClinentAddr) {
                     {
                         req.response_body = O2link[root["session"].asInt()].Firmware_write(root);
                     }*/
-#ifdef WIN32
+#if defined(WIN32) && defined(ENABLE_KEY_HOOK)
                     else if (cmd == "key_capture_install")
                     {
                         req.response_body = "{\"status\":0}";
@@ -459,7 +459,12 @@ connection: close\r\n\
             } else if (req.response_content_length > 0) {
                 send(sClient, req.response_body.data(), req.response_content_length, 0);
             }
+#ifdef WIN32
+            shutdown(sClient, SD_SEND);
+            closesocket(sClient);
+#else
             close(sClient);
+#endif
 
 
             delete[] recvbuffer;
@@ -489,13 +494,20 @@ connection: close\r\n\
 ",
                     req.accept_time);
 #endif
-            // cout << recvbuffer << endl;
             send(sClient, recvbuffer, strlen(recvbuffer), 0);
+#ifdef WIN32
+            closesocket(sClient);
+#else
             close(sClient);
+#endif
         }
     } else
         send(sClient, "", 1, 0);
+#ifdef WIN32
+    closesocket(sClient);
+#else
     close(sClient);
+#endif
 
     delete[] recvbuffer;
     return 0;
